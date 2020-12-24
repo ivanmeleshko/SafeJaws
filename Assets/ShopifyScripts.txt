@@ -1,0 +1,228 @@
+<iframe 
+        src="https://360.visengine.com/safejawz/release/index.html" 
+        style="display: block; background: #fff; min-width: 368px; height: 99vh; width: 100vw; border: 1px solid white;">
+</iframe>
+
+<script type="text/javascript">
+
+var variants = [];
+{% for variant in product.variants %}
+	variants.push({{ variant.id }});
+{% endfor %}
+
+function base64Encode(str) {
+    var CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    var out = "", i = 0, len = str.length, c1, c2, c3;
+    while (i < len) {
+        c1 = str.charCodeAt(i++) & 0xff;
+        if (i == len) {
+            out += CHARS.charAt(c1 >> 2);
+            out += CHARS.charAt((c1 & 0x3) << 4);
+            out += "==";
+            break;
+        }
+        c2 = str.charCodeAt(i++);
+        if (i == len) {
+            out += CHARS.charAt(c1 >> 2);
+            out += CHARS.charAt(((c1 & 0x3)<< 4) | ((c2 & 0xF0) >> 4));
+            out += CHARS.charAt((c2 & 0xF) << 2);
+            out += "=";
+            break;
+        }
+        c3 = str.charCodeAt(i++);
+        out += CHARS.charAt(c1 >> 2);
+        out += CHARS.charAt(((c1 & 0x3) << 4) | ((c2 & 0xF0) >> 4));
+        out += CHARS.charAt(((c2 & 0xF) << 2) | ((c3 & 0xC0) >> 6));
+        out += CHARS.charAt(c3 & 0x3F);
+    }
+    return out;
+}
+
+function b64ToUint8Array(buf) {
+    var img = buf;
+    var img_buffer = [];
+    var i = 0;
+    while (i < img.length) {
+        img_buffer.push(img.charCodeAt(i));
+        i++;
+    }
+    return new Uint8Array(img_buffer);
+}
+
+function processNextImage(formData, formImages) {
+    if (formImages.length === 0) {
+        sendToCart(formData)
+    }
+    else {
+        var obj = formImages.shift();
+        var data = {
+            upload_preset: "ylvlzol8",
+            file: obj.value
+        };
+        $.post("https://api.cloudinary.com/v1_1/defxvjygz/upload", data).done(function (data) {
+        }).then(function (data) {
+            // console.log(data.secure_url);
+            formData.append("properties[" + obj.key + "]", data.secure_url);
+            processNextImage(formData, formImages);
+        });
+    }
+}
+
+function sendToCart(formData) {
+    $.ajax({
+        url: "/cart/add.js",
+        data: formData,
+        cache: false,
+        contentType: false,
+        processData: false,
+        method: "POST",
+        type: "POST",
+        dataType : "json",
+        success: function (result) {
+            console.log("S", result);
+            if (window.Shopify.updateQuickCart) {
+                jQuery.getJSON("/cart.json", function(data) {
+                    Shopify.updateQuickCart(data);
+                });
+            window.open("https://www.safejawz.com/cart","_self");
+            }
+        },
+        error: function(result) {
+            console.log("E", result);
+        }
+    });
+ 
+}
+
+window.addEventListener('message', function(event)
+{
+	if (event.data && event.data.from === "configuratorPredefine")
+ 	{      
+		if (event.data.price)
+		{
+            $(".money").text('£' + Math.round(event.data.price * 100)/100);
+		}
+		if (event.data.product) 
+		{
+			var formData = new FormData();         
+                      
+            for (var k in event.data.product) 
+				if (event.data.product.hasOwnProperty(k)) 
+				{
+					if(k !== "priceVar" && k !== "fullContact")
+						formData.append('properties[' + k + ']', event.data.product[k]);
+				}
+		
+			if(event.data.product.fullContact)
+            {
+              formData.append('properties[Type]', "Full Contact");
+            }
+          	else
+            {
+              formData.append('properties[Type]', "Semi Contact");
+            }
+       		
+          	var productName = '/products/' + event.data.product.uuid + '.js'
+          	jQuery.getJSON(productName, function(product) 
+			{                          	
+              	if(event.data.product.fullContact)
+                {
+                  formData.append('id', product.variants[0].id);   
+                }
+                else
+                {
+                  formData.append('id', product.variants[1].id); 
+                }                                                                	
+                  
+              	formData.append('quantity', '1');           
+                sendToCart(formData);
+              })
+              .fail(function() 
+				{
+    				alert('The product not found.');   
+  				});       
+		}
+	} 
+  if (event.data && event.data.from === "configurator") {
+        //console.log(event);
+        if (event.data.price) {
+            $(".money").text('£' + Math.round(event.data.price * 100)/100);
+        }
+        if (event.data.product) {
+
+            var formData = new FormData();
+          	console.log("PRICE VAR" + event.data.product.priceVar);
+          	console.log("FULL OR SEMI" + event.data.product.fullContact);
+            var variantID = variants[event.data.product.priceVar];
+            var hasImages = false;
+            var formImages = [];
+
+          	console.log(event.data);
+          
+            for (var k in event.data.product) if (event.data.product.hasOwnProperty(k)) {
+                if (k === "images") {
+                    var imgs = event.data.product.images;
+                    for (var idx in imgs) if (imgs.hasOwnProperty(idx)) {
+                        //$("#demo-image").attr('src', 'data:image/png;base64,' + base64Encode(imgs[idx]));
+                        //var blob = new Blob([b64ToUint8Array(imgs[idx])], {type: "image/png"});
+                        //formData.append("properties[" + idx + "_image" + "]", blob, "CustomImage" + idx + ".png");
+                        //formImages.push({key: idx + "_image", value: 'data:image/png;base64,' + base64Encode(imgs[idx])});
+                        formImages.push({key: idx + "_image", value: 'data:image/png;base64,' + imgs[idx]});
+                        hasImages = true;
+                    }
+                } else {
+                  if(k !== "priceVar" && k !== "fullContact")
+                    formData.append('properties[' + k + ']', event.data.product[k]);
+                }
+            }
+			if(event.data.product.fullContact)
+            {
+              formData.append('properties[Type]', "Full Contact");
+            }
+          	else
+            {
+              formData.append('properties[Type]', "Semi Contact");
+            }
+          	console.log(event.data.product.text);
+			console.log(hasImages);          
+            
+          	/*if(event.data.product.text === "")
+            {
+              	console.log("image");
+              	variantID = variants[2];
+            }
+          	else if (event.data.product.text !== "" && hasImages)
+            {
+              	console.log("image + text");
+            	variantID = variants[3];
+            }
+            else if (event.data.product.text !== "" && !hasImages)
+            {
+                variantID = variants[1];
+            }*/
+
+            formData.append('id', variantID);
+            formData.append('quantity', '1');
+	 /*       if(event.data.product.fullContact)
+          	}
+				formData.append('Full Contact');
+        	}
+          	else
+          	{
+              	formData.append('Semi Contact');
+          	}*/
+            if (hasImages) {
+                if (window.Shopify.showModal)
+                {
+                  	console.log("modal");
+                  	document.getElementById("upload-popup").style.display = 'block';
+                    //Shopify.showModal('<div class="product-contents-wrapper clearfix"><div class="modal-product-image">Uploading your images... this may take a few seconds.</div></div>');
+                }
+                processNextImage(formData, formImages);
+            } else {
+                sendToCart(formData);
+            }
+        }
+    }
+});
+</script>

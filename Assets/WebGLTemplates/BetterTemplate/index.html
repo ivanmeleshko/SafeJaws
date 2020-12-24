@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>%UNITY_WEB_NAME%</title>
+    <style>
+      html {
+        box-sizing: border-box;
+      }
+      *, *:before, *:after {
+        box-sizing: inherit;
+      }
+      body {
+        margin: 0;
+        background: #ffffff;
+      }
+      #gameContainer {
+        width: 100vw;
+        height: 95vh;
+		background: #ffffff !important;
+      }
+      canvas {
+        width: 100%;
+        height: 99%;
+        display: block;
+      }
+      /* try to handle mobile dialog */
+      canvas + * {
+        z-index: 2;
+      }
+      .logo {
+          display: block;
+          max-width: 100vw;
+          max-height: 99vh;
+      }
+
+      .progress {  
+		margin: 2px;  
+		height: 36px; 
+		width: 400px; 
+		display: inline-block;  
+      }
+	  
+	   .progress .empty{  		
+		background: url('progressEmpty.Light.png') no-repeat right / cover;
+		 float: right; width: 100%; height: 100%; display: inline-block;
+      }
+      .progress .full {		
+		background: url('progressFull.Dark.png') no-repeat left / cover;
+		 float: left; width: 0%; height: 100%; display: inline-block;
+      }
+
+      #loader {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 99vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;		
+      }
+
+      .spinner,
+      .spinner:after {
+        border-radius: 50%;
+        width: 5em;
+        height: 5em;
+      }
+      .spinner {
+        margin: 10px;
+        font-size: 10px;
+        position: relative;
+        text-indent: -9999em;
+        border-top: 1.1em solid rgba(255, 255, 255, 0.2);
+        border-right: 1.1em solid rgba(255, 255, 255, 0.2);
+        border-bottom: 1.1em solid rgba(255, 255, 255, 0.2);
+        border-left: 1.1em solid #ffffff;
+        transform: translateZ(0);
+        animation: spinner-spin 1.1s infinite linear;
+      }
+	  
+      @keyframes spinner-spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+    </style>
+  </head>
+
+  <body>
+  <script>
+		function FixInputOnSubmit() {
+			document.getElementById("fixInput").blur();
+			event.preventDefault();
+		}
+	</script>
+    <div>
+		<form onsubmit="FixInputOnSubmit()" autocomplete="off" style="width: 0px; height: 0px; position: absolute; top: -9999px;">
+			<input type="text" id="fixInput" 
+			oninput="gameInstance.SendMessage('_WebGLKeyboard', 'ReceiveInputChange', document.getElementById('fixInput').value);" 
+			onblur="gameInstance.SendMessage('_WebGLKeyboard', 'LoseFocus');"
+			style="font-size: 42px;">
+		</form>
+	</div>
+    <div id="gameContainer"></div>
+    <div id="loader">
+		<img class="logo" src="logo.png" alt="Bold">      			
+		<div class="progress"><div class="empty"><div class="full"></div></div>
+		<div style="text-align:center; color:black;font-family:arial;font-size:70%;">THIS MAY TAKE AROUND 1 MINUTE TO LOAD</div>
+		<div class="spinner"></div>	
+	    </div>
+    </div>
+
+
+  <script src="%UNITY_WEBGL_LOADER_URL%"></script>
+  <script>
+  var gameInstance = UnityLoader.instantiate("gameContainer", "%UNITY_WEBGL_BUILD_URL%", {onProgress: UnityProgress});
+  function UnityProgress(gameInstance, progress) 
+  {
+    if (!gameInstance.Module) 
+	{
+      return;
+    }
+    const loader = document.querySelector("#loader");
+    if (!gameInstance.progress) 
+	{
+      const progress = document.querySelector("#loader .progress");
+      progress.style.display = "block";
+      gameInstance.progress = progress.querySelector(".full");
+      gameInstance.progress.empty = progress.querySelector(".empty");
+      loader.querySelector(".spinner").style.display = "none";   
+    }
+   // gameInstance.progress.style.transform = `scaleX(${progress})`;
+	 gameInstance.progress.style.width = (100 * progress) + "%";
+	//gameInstance.progress.empty.style.width = (100 * (1 - progress)) + "%";
+    if (progress === 1 && !gameInstance.removeTimeout) 
+	{
+      gameInstance.removeTimeout = setTimeout(function() 
+	  {
+          loader.style.display = "none";
+      }, 10);
+    }
+  }
+  </script>
+	</body>
+</html>
